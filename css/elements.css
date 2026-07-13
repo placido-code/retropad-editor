@@ -1,6 +1,6 @@
 button {
-	background-color: #08d;
-	border: 1px solid #06b;
+	background-color: var(--blue-secondary);
+	border: 1px solid var(--blue-main);
 	border-radius: 3px;
 	color: white;
 	padding: 2px 4px 2px 4px;
@@ -9,24 +9,24 @@ button {
 }
 
 button:hover {
-	background-color: #19e;
+	background-color: var(--blue-tertiary);
 }
 
 button:active {
-	background-color: #06b;
+	background-color: var(--blue-main);
 }
 
 button.danger {
-	background-color: #d03;
-	border: 1px solid #b01;
+	background-color: var(--red-secondary);
+	border: 1px solid var(--red-main);
 }
 
 button.danger:hover {
-	background-color: #e14;
+	background-color: var(--red-tertiary);
 }
 
 button.danger:active {
-	background-color: #b01;
+	background-color: var(---red-main);
 }
 
 button.close-button {
@@ -34,28 +34,28 @@ button.close-button {
 	height: 1em;
 	width: 1em;
 	padding: 1px;
-	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' height='100' width='100'><path d='M 30,30 70,70 M 70,30 30,70' style='fill:none;stroke:rgb(255,255,255);stroke-width:8;stroke-linecap:round; stroke-linejoin:round'/></svg>");
+	background-image: var(--close-icon);
 	background-position: center center;
 	background-repeat: no-repeat;
 	background-size: 100% 100%;
 }
 
 button.important {
-	background-color: #0a1;
-	border: 1px solid #080;
+	background-color: var(--green-secondary);
+	border: 1px solid var(--green-main);
 }
 
 button.important:hover {
-	background-color: #1b2;
+	background-color: var(--green-tertiary);
 }
 
 button.important:active {
-	background-color: #080;
+	background-color: var(--green-main);
 }
 
 button.empty {
 	background-color: rgba(0, 0, 0, 0);
-	color: #06b;
+	color: var(--blue-main);
 }
 
 button.empty:hover {
@@ -69,14 +69,14 @@ button.empty:active {
 button.empty.expander {
 	padding-right: 1.5em;
 	position: relative;
-	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' height='70' width='125'><path d='M 10,10 60,60 110,10' style='fill:none;stroke:rgb(0,102,187);stroke-width:20;stroke-linecap:round; stroke-linejoin:round'/></svg>");
+    background-image: var(--chevron-down);
 	background-position: center right 0.5em;
 	background-repeat: no-repeat;
 	background-size: auto 25%;
 }
 
 button.empty.expander.expanded {
-	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' height='70' width='125'><path d='M 10,60 60,10 110,60' style='fill:none;stroke:rgb(0,102,187);stroke-width:20;stroke-linecap:round; stroke-linejoin:round'/></svg>");
+	background-image: var(--chevron-up);
 }
 
 button:focus {
@@ -88,15 +88,15 @@ select {
 	appearance: none;
 	-moz-appearance: none;
 	-webkit-appearance: none;
-	border: 1px solid #ccd;
-	background-color: #e9e9f1;
-	color: #777;
+	border: 1px solid var(--border);
+	background-color: var(--element-bg);
+	color: var(--element-text);
 	box-shadow: none;
 	padding: 4px;
 	padding-right: 1em;
 	border-radius: 3px;
 	position: relative;
-	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' height='70' width='120'><path d='M 10,10 60,60 110,10' style='fill:none;stroke:rgb(128,128,128);stroke-width:20;stroke-linecap:round; stroke-linejoin:round'/></svg>");
+	background-image: var(--select-chevron);
 	background-position: center right 0.5em;
 	background-repeat: no-repeat;
 	background-size: auto 25%;
@@ -121,9 +121,9 @@ input[type=checkbox] {
 	appearance: none;
 	-moz-appearance: none;
 	-webkit-appearance: none;
-	border: 1px solid #ccd;
+	border: 1px solid var(--border);
 	border-radius: 3px;
-	background-color: #e9e9f1;
+	background-color: var(--element-bg);
 	box-shadow: none;
 	width: 1em;
 	height: 1em;
@@ -135,7 +135,7 @@ input[type=checkbox] {
 }
 
 input[type=checkbox]:checked {
-	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' height='100' width='100'><path d='M 10,55 35,80 90,20' style='fill:none;stroke:rgb(102,136,153);stroke-width:15;stroke-linecap:round; stroke-linejoin:round'/></svg>");
+	background-image: var(--checkbox-checked);
 	background-position: center center;
 	background-repeat: no-repeat;
 	background-size: 90% 90%;
@@ -145,9 +145,9 @@ input[type=radio] {
 	appearance: none;
 	-moz-appearance: none;
 	-webkit-appearance: none;
-	border: 1px solid #ccd;
+	border: 1px solid var(--border);
 	border-radius: 50%;
-	background-color: #e9e9f1;
+	background-color: var(--element-bg);
 	box-shadow: none;
 	width: 1em;
 	height: 1em;
@@ -159,7 +159,7 @@ input[type=radio] {
 }
 
 input[type=radio]:checked {
-	background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' height='100' width='100'><circle cx='50' cy='50' r='27' style='fill:rgb(102,136,153);'/></svg>");
+	background-image: var(--radio-checked);
 	background-position: center center;
 	background-repeat: no-repeat;
 	background-size: 100% 100%;
@@ -178,9 +178,9 @@ input[type=number] {
 	-webkit-appearance: none;
 	-moz-appearance: textfield;
 	appearance: textfield;
-	border: 1px solid #ccd;
-	background-color: #f7f7fa;
-	color: #777;
+	border: 1px solid var(--border);
+	background-color: var(--element-bg-alt);
+	color: var(--element-text);
 	padding: 4px;
 	border-radius: 3px;
 }
@@ -189,9 +189,9 @@ input[type=text] {
 	-webkit-appearance: none;
 	-moz-appearance: none;
 	appearance: none;
-	border: 1px solid #ccd;
-	background-color: #f7f7fa;
-	color: #777;
+	border: 1px solid var(--border);
+	background-color: var(--element-bg-alt);
+	color: var(--element-text);
 	box-shadow: none;
 	padding: 4px;
 	border-radius: 3px;
@@ -240,11 +240,11 @@ input[type=range]::-ms-track {
 
 input[type=range]::-webkit-slider-thumb {
 	-webkit-appearance: none;
-	border: 6px solid #08d;
+	border: 6px solid var(--blue-secondary);
 	height: 10px;
 	width: 5px;
 	border-radius: 3px;
-	background: #e9e9f1;
+	background: var(--element-bg);
 	cursor: pointer;
 	margin-top: -8px;
 	box-shadow: none;
@@ -252,30 +252,30 @@ input[type=range]::-webkit-slider-thumb {
 }
 
 input[type=range]:active::-webkit-slider-thumb {
-	background: #ffffff;
+	background: var(--bg);
 }
 
 input[type=range]::-moz-range-thumb {
 	box-shadow: none;
-	border: 6px solid #08d;
+	border: 6px solid var(--blue-secondary);
 	height: 10px;
 	width: 5px;
 	border-radius: 3px;
-	background: #e9e9f1;
+	background: var(--element-bg);
 	cursor: pointer;
 }
 
 input[type=range]:active::-moz-range-thumb {
-	background: #ffffff;
+	background: var(--bg);
 }
 
 input[type=range]::-ms-thumb {
 	box-shadow: none;
-	border: 6px solid #08d;
+	border: 6px solid var(--blue-secondary);
 	height: 10px;
 	width: 5px;
 	border-radius: 3px;
-	background: #e9e9f1;
+	background: var(--element-bg);
 	cursor: pointer;
 	margin-bottom: -8px;
 	margin-top: -8px;
@@ -283,15 +283,15 @@ input[type=range]::-ms-thumb {
 }
 
 input[type=range]:active::-ms-thumb {
-	background: #ffffff;
+	background: var(--bg);
 }
 
 input[type=range]::-webkit-slider-runnable-track {
 	width: 100%;
 	height: 8px;
 	cursor: pointer;
-	border: 1px solid #ccd;
-	background-color: #e9e9f1;
+	border: 1px solid var(--border);
+	background-color: var(--element-bg);
 	border-radius: 4px;
 	box-sizing: border-box;
 }
@@ -304,8 +304,8 @@ input[type=range]::-moz-range-track {
 	width: 100%;
 	height: 8px;
 	cursor: pointer;
-	border: 1px solid #ccd;
-	background-color: #e9e9f1;
+	border: 1px solid var(--border);
+	background-color: var(--element-bg);
 	border-radius: 4px;
 	box-sizing: border-box;
 }
@@ -318,8 +318,8 @@ input[type=range]::-ms-track {
 	width: 100%;
 	height: 8px;
 	cursor: pointer;
-	border: 1px solid #ccd;
-	background-color: #e9e9f1;
+	border: 1px solid var(--border);
+	background-color: var(--element-bg);
 	border-radius: 4px;
 	box-sizing: border-box;
 	box-shadow: none;
@@ -333,28 +333,28 @@ input[type=range]::-ms-fill-lower {
 	width: 100%;
 	height: 8px;
 	cursor: pointer;
-	border: 1px solid #ccd;
-	background-color: #e9e9f1;
+	border: 1px solid var(--border);
+	background-color: var(--element-bg);
 	border-radius: 4px;
 	box-sizing: border-box;
 }
 
 input[type=range]:focus::-ms-fill-lower {
-	background: #e9e9f1;
+	background: var(--element-bg);
 }
 
 input[type=range]::-ms-fill-upper {
 	width: 100%;
 	height: 8px;
 	cursor: pointer;
-	border: 1px solid #ccd;
-	background-color: #e9e9f1;
+	border: 1px solid var(--border);
+	background-color: var(--element-bg);
 	border-radius: 4px;
 	box-sizing: border-box;
 }
 
 input[type=range]:focus::-ms-fill-upper {
-	background: #e9e9f1;
+	background: var(--element-bg);
 }
 
 .input_file {
@@ -377,8 +377,8 @@ input[type=range]:focus::-ms-fill-upper {
 
 .input_file label {
 	background-color: rgba(0, 0, 0, 0);
-	color: #06b;
-	border: 1px solid #06b;
+	color: var(--blue-main);
+	border: 1px solid var(--blue-main);
 	border-radius: 3px;
 	padding: 2px 4px 2px 4px;
 	margin: 2px 0 2px 0;
@@ -413,9 +413,9 @@ input[type=range]:focus::-ms-fill-upper {
 }
 
 textarea {
-	border: 1px solid #ccd;
-	background-color: #f7f7fa;
-	color: #777;
+	border: 1px solid var(--border);
+	background-color: var(--element-bg-alt);
+	color: var(--element-text);
 	box-shadow: none;
 	padding: 4px;
 	border-radius: 3px;
@@ -441,4 +441,19 @@ select:disabled, input:disabled, button:disabled, textarea:disabled, .input_file
 
 input:disabled+label {
 	opacity: 0.4;
+}
+
+pre {
+    border: 1px solid var(--border);
+	background-color: var(--element-bg-alt);
+	color: var(--element-text);
+    overflow: auto;
+    padding: 5px 10px 5px 10px;
+    margin: 5px 0 5px 0;
+}
+
+pre code {
+    display: block;
+    font-family: monospace;
+    white-space: pre;
 }
