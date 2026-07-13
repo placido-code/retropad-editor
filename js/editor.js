@@ -8,6 +8,10 @@ const defaultParamsForNewOverlay = 'full_screen = true\nnormalized = true\nrange
 const autoScaleParams = 'auto_x_separation = true\n'; //auto_y_separation = ?
 const manualScaleParams = 'block_x_separation = false\nblock_y_separation = false';
 
+const undoStack = [];
+const redoStack = [];
+const MAX_HISTORY = 100;
+
 let importedFilename = 'retropad.cfg';
 let currentRect;
 
@@ -49,27 +53,163 @@ if (defaultImagesObj) // defaults.js
 
 let userImages = [];
 
-fillCommandSelector(buttonCommandList);
+fillCommandSelector();
 fillImageSelector();
+fillEightwaySelector();
+fillAdditionalPropsSelector();
 
 let conf = new ConfigHandler();
 let configStr = defaultConfigString; // defaults.js
+let overlayRMod;
 renderConfig(configStr);
 
 'xywh'.split('').forEach(elem => {
+    const mult = (elem == "w" || elem == "h") ? 2 : 1;
+    
 	let range = document.getElementById(elem + '-range');
 	let text = document.getElementById(elem + '-number');
-
+	let pixel = document.getElementById(elem + '-pixel');
+    let handle = document.getElementById(elem + '-handle');
+    
+    range.addEventListener('mousedown', (e) => {
+        saveState();
+    });
+    
+    range.addEventListener('touchstart', (e) => {
+        saveState();
+    });
+    
 	range.addEventListener('input', (e) => {
-		applyButtonParam(elem, e.target.value);
+        const screenSize = (elem == "x" || elem == "w") ? screen.width : screen.height;
+        
+        applyButtonParam(elem, e.target.value);
 		text.value = e.target.value;
+		pixel.value = Number((e.target.value * screenSize * mult).toFixed(5));
+        updateGizmo(elem, e.target.value);
 	});
+    
+    let saveTimer;
+    let canSaveBeforeInput = true;
 
-	text.addEventListener('input', (e) => {
-		applyButtonParam(elem, e.target.value);
+	text.addEventListener('focus', (e) => {
+        canSaveBeforeInput = true;
+    });
+    
+    text.addEventListener('beforeinput', (e) => {
+        if (canSaveBeforeInput) {
+            canSaveBeforeInput = false;
+            saveState();
+        }
+    });
+    
+    text.addEventListener('input', (e) => {
+        const screenSize = (elem == "x" || elem == "w") ? screen.width : screen.height;
+        
+        applyButtonParam(elem, e.target.value);
 		range.value = e.target.value;
+        pixel.value = Number((e.target.value * screenSize * mult).toFixed(5));
+        updateGizmo(elem, e.target.value);
+
+        clearTimeout(saveTimer);
+        
+        saveTimer = setTimeout(() => {
+            canSaveBeforeInput = true;
+        }, 1000);
 	});
+    
+    pixel.addEventListener('focus', (e) => {
+        canSaveBeforeInput = true;
+    });
+    
+    pixel.addEventListener('beforeinput', (e) => {
+        if (canSaveBeforeInput) {
+            canSaveBeforeInput = false;
+            saveState();
+        }
+    });
+    
+    pixel.addEventListener('input', (e) => {
+        const screenSize = (elem == "x" || elem == "w") ? screen.width : screen.height;
+        let value = e.target.value / screenSize / mult;
+        
+        applyButtonParam(elem, value);
+		range.value = value;
+		text.value = value;
+        updateGizmo(elem, value);
+
+        clearTimeout(saveTimer);
+        
+        saveTimer = setTimeout(() => {
+            canSaveBeforeInput = true;
+        }, 1000);
+	});
+    
+    const isPosition = (elem == 'x' || elem == 'y');
+    
+    handle.addEventListener('touchstart', (e) => gizmoDragStart(e, isPosition));
+    handle.addEventListener('mousedown', (e) => gizmoDragStart(e, isPosition));
+    
+    handle.addEventListener('touchmove', (e) => gizmoDragMove(e, elem));
+    handle.addEventListener('mousemove', (e) => gizmoDragMove(e, elem));
 });
+
+document.getElementById('center-handle').addEventListener('touchstart', (e) => gizmoDragStart(e, true));
+document.getElementById('center-handle').addEventListener('mousedown', (e) => gizmoDragStart(e, true));
+
+document.getElementById('center-handle').addEventListener('touchmove', (e) => gizmoDragMove(e, 'xy'));
+document.getElementById('center-handle').addEventListener('mousemove', (e) => gizmoDragMove(e, 'xy'));
+
+let canSaveBeforeMove = true;
+let offsetX;
+let offsetY;
+
+const gizmoDragStart = (e, isDraggingPosition) => {
+    canSaveBeforeMove = true;
+    
+    let rect;
+    if (isDraggingPosition)
+        rect = document.getElementById('gizmo').getBoundingClientRect();
+    else
+        rect = e.target.getBoundingClientRect();
+    
+    let pointX = e.clientX || e.targetTouches[0].clientX;
+    let pointY = e.clientY || e.targetTouches[0].clientY;
+    
+    let centerX = rect.left + rect.width / 2;
+    let centerY = rect.top + rect.height / 2;
+    
+    offsetX = pointX - centerX;
+    offsetY = pointY - centerY;
+}
+
+const gizmoDragMove = (e, props) => {
+    if (canSaveBeforeMove) {
+        canSaveBeforeMove = false;
+        saveState();
+    }
+    
+    let rect = document.getElementById('gizmo-container').getBoundingClientRect();
+    let gizmo = document.getElementById('gizmo').getBoundingClientRect();
+    let pointX = e.clientX || e.targetTouches[0].clientX;
+    let pointY = e.clientY || e.targetTouches[0].clientY;
+   
+    props.split('').forEach(elem => {
+        let range = document.getElementById(elem + '-range');
+        
+        if (elem == 'x')
+            range.value = (pointX - rect.left - offsetX) / screen.width;
+        else if (elem == 'y')
+            range.value = (pointY - rect.top - offsetY) / screen.height;
+        else if (elem == 'w')
+            range.value = -(pointX - gizmo.left + offsetX) / screen.width;
+        else if (elem == 'h')
+            range.value = -(pointY - gizmo.top + offsetY) / screen.height;
+        
+        range.dispatchEvent(new Event('input'));
+    });
+    
+    e.preventDefault();
+};
 
 document.getElementById('chk-show-shapes').addEventListener('change', toggleShapes);
 document.getElementById('chk-show-names').addEventListener('change', toggleNames);
@@ -86,6 +226,36 @@ document.getElementById('load-button-images').addEventListener('change', loadIma
 document.getElementById('load-screenshot').addEventListener('change', loadScreenshotFile);
 document.getElementById('chk-show-screenshot').addEventListener('change', toggleScreenshot);
 
+document.getElementById('chk-show-gizmo').addEventListener('change', toggleGizmo);
+document.getElementById('chk-pixel-snap').addEventListener('change', togglePixelSnap);
+
+document.getElementById('up-select').addEventListener('change', e => fillEightwayField(e, 'up'));
+document.getElementById('down-select').addEventListener('change', e => fillEightwayField(e, 'down'));
+document.getElementById('left-select').addEventListener('change', e => fillEightwayField(e, 'left'));
+document.getElementById('right-select').addEventListener('change', e => fillEightwayField(e, 'right'));
+
+document.getElementById('add-property-select').addEventListener('change', toggleAdditionalButtonProperties);
+
+document.querySelectorAll('.accordion-header').forEach(entry => {
+    entry.addEventListener('click', () => {
+        const content = entry.nextElementSibling;
+        
+        if (content.style.display === 'block') {
+            entry.classList.remove('expanded');
+            content.style.display = 'none';
+        } else {
+            let expandedEntry = document.getElementsByClassName('accordion-header expanded')[0];
+            
+            if (expandedEntry) {
+                expandedEntry.classList.remove('expanded');
+                expandedEntry.nextElementSibling.style.display = 'none';
+            }
+            
+            entry.classList.add('expanded');
+            content.style.display = 'block';
+        }
+    });
+});
 
 function applyButtonParam(section, sValue) {
 	let value = Number(sValue);
@@ -107,7 +277,7 @@ function createPadView() {
 
 	for (let i = 0; i < rects.length; i++) {
 		let r = rects[i];
-		let b = createRect(background, r.command, r.x, r.y, r.w, r.h, r.pct);
+		let b = createRect(background, r.command, r.x, r.y, r.w, r.h, r.s, r.rm, r.pct, r.rx, r.ry, r.ru, r.rd, r.rl, r.rr, r.e, r.rme);
 
 		if (r.img)
 			b.style['background-image'] = 'url(' + images[r.img] + ')';
@@ -120,23 +290,40 @@ function createPadView() {
 			b.classList.add('selected');
 
 		b.addEventListener('click', () => {
-			if (currentRect)
-				currentRect.classList.remove('selected');
-
-			conf.setCurrentLine(r.i);
-			currentRect = b;
-
-			b.classList.add('selected');
-
-			'xywh'.split('').forEach(elem => {
-				let range = document.getElementById(elem + '-range');
-				let text = document.getElementById(elem + '-number');
-				text.value = conf.getCurrentLineSectionValue(elem);
-				range.value = conf.getCurrentLineSectionValue(elem);
-			});
-
-			enableEditor(true);
-			document.activeElement.blur();
+			let selectMode = document.querySelector('input[name="select-mode"]:checked').id;
+            
+            if (selectMode == 'set-mode') {
+                if (currentRect)
+				    currentRect.classList.remove('selected');
+    
+			    conf.setSelectedIndexes([r.i]);
+                conf.setCurrentLine(r.i);
+			    currentRect = b;
+    
+			    b.classList.add('selected');
+    
+			    setEditorLineControls();
+			    document.activeElement.blur();
+            } else {
+                if (selectMode == 'add-mode') {
+                    conf.addToSelectedIndexes([r.i]);
+                    b.classList.add('selected');
+                } else if (selectMode == 'subtract-mode') {
+                    conf.subtractFromSelectedIndexes([r.i]);
+                    b.classList.remove('selected');
+                }
+                
+                let indexes = conf.getSelectedIndexes();
+                
+                if (indexes.length == 1) {
+                    let index = indexes[0];
+                    conf.setCurrentLine(index);
+                    setEditorLineControls();
+                } else
+                    setEditorSelectionControls();
+                    
+                document.activeElement.blur();
+            }
 		});
 	}
 }
@@ -183,23 +370,20 @@ function createPadBackground() {
 		isMouseDown = false;
 
 		let indexes = conf.getSelectedIndexes();
-		if (indexes.length == 0 && conf.getCurrentLineSectionValue('shape') === null)
+		if (indexes.length == 0 && conf.getCurrentLineSectionValue('shape') === null) {
 			enableEditor(false);
-
-		if (indexes.length == 1) {
-			let index = indexes[0];
-			conf.resetGroupSelection();
-			conf.setCurrentLine(index);
-			let elem = document.querySelectorAll('.rect[data-line-index="' + index + '"]')[0];
-
-			setTimeout(() => {
-				elem.dispatchEvent(new Event('click'));
-			}, 0);
-		}
+            enableEditorExtra(false)
+        }
+        
+        if (indexes.length == 1) {
+            let index = indexes[0];
+            conf.setCurrentLine(index);
+            setEditorLineControls();
+        }
 	}
 
 	backgroundDiv.onmousedown = (event) => {
-		if (event.button != 0)
+        if (event.button != 0)
 			return;
 
 		let bgRect = backgroundDiv.getBoundingClientRect();
@@ -207,9 +391,12 @@ function createPadBackground() {
 		let ty = bgRect.top;
 		startX = event.clientX - tx;
 		startY = event.clientY - ty;
+        
+        let selectMode = document.querySelector('input[name="select-mode"]:checked').id;
 
 		isMouseDown = true;
-		deselectAll();
+		if (selectMode == 'set-mode' || selectMode == 'add-mode' && event.target == backgroundDiv)
+            deselectAll();
 		conf.setCurrentLine(-1);
 		currentRect = null;
 		event.preventDefault();
@@ -269,7 +456,7 @@ function createPadBackground() {
 		select.style.bottom = bottom + 'px';
 
 		getButtonsInRect(left, top, right, bottom, backgroundDiv);
-		setEditorControls();
+		setEditorSelectionControls();
 	}
 
 	return backgroundDiv;
@@ -287,14 +474,26 @@ function getButtonsInRect(left, top, right, bottom, container) {
 	let rectBottom = (cHeight - bottom) / cHeight;
 
 	let indexes = conf.selectButtonsInBounds(rectLeft, rectTop, rectRight, rectBottom);
-
-	let rects = document.querySelectorAll('.rect');
-	rects.forEach(e => e.classList.remove('selected'));
-
+    
+    let selectMode = document.querySelector('input[name="select-mode"]:checked').id;
+    
+    if (selectMode == 'set-mode') {
+        conf.setSelectedIndexes(indexes);
+        
+        let rects = document.querySelectorAll('.rect');
+	    rects.forEach(e => e.classList.remove('selected'));
+    } else if (selectMode == 'add-mode')
+        conf.addToSelectedIndexes(indexes);   
+    else if (selectMode == 'subtract-mode')
+        conf.subtractFromSelectedIndexes(indexes);
+    
 	indexes.forEach((e) => {
 		let elem = document.querySelectorAll('.rect[data-line-index="' + e + '"]');
 		if (elem[0])
-			elem[0].classList.add('selected');
+            if (selectMode == 'subtract-mode')
+			    elem[0].classList.remove('selected');
+            else
+			    elem[0].classList.add('selected');
 	});
 }
 
@@ -322,19 +521,48 @@ function deselectAll() {
 }
 
 
-function setEditorControls() {
+function setEditorLineControls() {
+    'xywh'.split('').forEach(elem => {
+        const screenSize = (elem == "x" || elem == "w") ? screen.width : screen.height;
+        const mult = (elem == "w" || elem == "h") ? 2 : 1;
+        
+		let range = document.getElementById(elem + '-range');
+		let text = document.getElementById(elem + '-number');
+		let pixel = document.getElementById(elem + '-pixel');
+		
+        text.value = conf.getCurrentLineSectionValue(elem);
+		range.value = conf.getCurrentLineSectionValue(elem);
+        pixel.value = Number((conf.getCurrentLineSectionValue(elem) * screenSize * mult).toFixed(5));
+        updateGizmo(elem, conf.getCurrentLineSectionValue(elem));
+	});
+    
+	enableEditor(true);
+    enableEditorExtra(false);
+}
+
+
+function setEditorSelectionControls() {
 	enableEditor(false);
 	let size = conf.getSelectionDimensions();
-	if (size)
+	if (size) {
 		enableEditorSliders(true);
+        enableEditorExtra(true);
+    }
 	else
 		return;
 
 	'xywh'.split('').forEach(elem => {
+        const screenSize = (elem == "x" || elem == "w") ? screen.width : screen.height;
+        const mult = (elem == "w" || elem == "h") ? 2 : 1;
+        
 		let range = document.getElementById(elem + '-range');
 		let text = document.getElementById(elem + '-number');
-		text.value = Number(size[elem].toFixed(10));
+		let pixel = document.getElementById(elem + '-pixel');
+        
+        text.value = Number(size[elem].toFixed(10));
+        pixel.value = Number((size[elem] * screenSize * mult).toFixed(5));
 		range.value = size[elem];
+        updateGizmo(elem, size[elem]);
 	});
 }
 
@@ -351,6 +579,7 @@ function loadConfigFromFile(e) {
 		configStr = ev.target.result;
 		try {
 			renderConfig(ev.target.result);
+            resetHistory();
 		} catch {
 			let errMsg = 'FILE PARSING ERROR!';
 			console.log(errMsg);
@@ -403,7 +632,8 @@ function loadImageFiles(e) {
 
 			// onload is async function so loop ends BEFORE it's first launch
 			if (++loadCounter == imgCounter) {
-				redrawPad();
+				deselectAll();
+                redrawPad();
 				fillImageSelector();
 			}
 		};
@@ -435,6 +665,7 @@ function loadScreenshotFile(e) {
 				console.log('Size', im.naturalWidth, im.naturalHeight);
 
 				setScreenDimensions();
+                deselectAll();
 				redrawPad();
 			}
 			im.src = screen.shotImage;
@@ -459,17 +690,72 @@ function refreshScreenshot() {
 }
 
 
-function createRect(target, name, x, y, w, h, pct) {
+function createRect(target, name, x, y, w, h, s, rm, pct, rx, ry, ru, rd, rl, rr, e, rme) {
 	let rect = document.createElement('DIV');
 	let text = document.createTextNode(name);
 	rect.appendChild(text);
 	rect.classList.add('rect');
-
+    
+    let rUp = ru ? ru : ry ? ry : 1;
+    let rDown = rd ? rd : ry ? ry : 1;
+    let rLeft = rl ? rl : rx ? rx : 1;
+    let rRight = rr ? rr : rx ? rx : 1;
+    
+    if ((rLeft == 0 && rRight == 0) || (rUp == 0 && rDown == 0))
+        rect.classList.add('hitbox-none');
+    else {
+	    let percUp = Math.round((rUp - 1) * 50);
+	    let percDown = Math.round((rDown - 1) * 50);
+	    let percLeft = Math.round((rLeft - 1) * 50);
+	    let percRight = Math.round((rRight - 1) * 50);
+        
+        let rMod = rm ? rm : overlayRMod;
+        
+        if (rMod) {
+		    // visualize range_mod property
+		    let range = document.createElement('DIV');
+		    let perc = Math.round(((rMod >= 1 ? rMod : 1) - 1) * 50);
+            
+            range.classList.add('hitbox');
+            if (rme === "true")
+                range.classList.add('exclusive');
+            
+            if (rm)
+                range.style.boxShadow = '0 0 100px inset rgba(100,200,200,0.3)';
+            else
+                range.style.boxShadow = '0 0 100px inset rgba(200,200,200,0.3)';
+            
+            range.style.top = -(percUp + perc) + '%';
+		    range.style.bottom = -(percDown + perc) + '%';
+		    range.style.left = -(percLeft + perc) + '%';
+		    range.style.right = -(percRight + perc) + '%';
+            rect.appendChild(range);
+	    }
+        
+        if (percUp != 0 || percDown != 0 || percLeft != 0 || percRight != 0) {
+		    // visualize reach property
+            let reach = document.createElement('DIV');
+		    
+            reach.classList.add('hitbox');
+            if (e === "true")
+                reach.classList.add('exclusive');
+            
+            reach.style.boxShadow = '0 0 100px inset rgba(200,200,100,0.3)';
+            
+            reach.style.top = -percUp + '%';
+		    reach.style.bottom = -percDown + '%';
+		    reach.style.left = -percLeft + '%';
+		    reach.style.right = -percRight + '%';
+            rect.appendChild(reach);
+	    } else if (e === "true")
+            rect.classList.add('exclusive');
+    }
+    
 	if (pct) {
 		// visualize thumbstick saturate_pct property
 		let inner = document.createElement('DIV');
 		let perc = Math.round(pct * 70);
-		inner.style['background-image'] = 'radial-gradient(transparent, rgba(100,100,200,0.4) ' + perc + '%, transparent ' + (perc + 1) + '%)';
+		inner.style.backgroundImage = 'radial-gradient(transparent, rgba(100,100,200,0.4) ' + perc + '%, transparent ' + (perc + 1) + '%)';
 		rect.appendChild(inner);
 	}
 
@@ -495,6 +781,7 @@ function redrawPad() {
 	refreshScreenshot();
 	createPadView();
 	enableEditor(false);
+    enableEditorExtra(false);
 }
 
 
@@ -505,7 +792,7 @@ function resetScreen() {
 	s.style.height = screen.height + 'px';
 
 	s.innerHTML = '';
-
+    
 	let d = document.createElement('DIV');
 	d.classList.add('inner');
 	d.id = 'game-screenshot'
@@ -524,6 +811,11 @@ function resetScreen() {
 		d.style.top = (screen.height - shotHeight) / 2 + 'px';
 
 	s.appendChild(d);
+    
+    let g = document.getElementById('gizmo-container');
+
+	g.style.width = screen.width + 'px';
+	g.style.height = screen.height + 'px';
 }
 
 
@@ -610,6 +902,7 @@ function applyScreenDimensions() {
 
 	setScreenDimensions(w, h, sw, sh);
 
+    deselectAll();
 	redrawPad();
 }
 
@@ -660,6 +953,7 @@ function buildAndSetOverlaySelectors(selectIndex) {
 	selectIndex = Math.min(selectIndex, list.length - 1);
 	select.selectedIndex = selectIndex;
 	conf.setCurrentOverlay(selectIndex);
+    overlayRMod = conf.getCurrentOverlayParams().find(param => param.startsWith("range_mod"))?.split("=")[1];
 	screen.isPortrait = list[selectIndex].search('portrait') != -1;
 
 	document.getElementById('chk-show-portrait').checked = screen.isPortrait;
@@ -691,9 +985,10 @@ function fillButtonEditor(command, shape, image, addLines) {
 	showImagePreview(image);
 
 	setImageSelectorOption(image);
-	setCommandSelectorOption(command);
+	setPropertySelectorOption('command', command);
 
 	fillAdditionalPropsFields(addLines.split('\n'));
+    fillAdditionalPropsSelector();
 }
 
 
@@ -735,20 +1030,82 @@ function setImageSelectorOption(value) {
 }
 
 
-function fillCommandSelector(commands) {
-	commands = commands.split('\n');
-	let s = document.getElementById('command-select');
-
-	commands.forEach((e) => {
-		let o = document.createElement('OPTION');
-		o.appendChild(document.createTextNode(e));
-		s.appendChild(o);
-	})
+function fillAdditionalPropsSelector() {
+    let v = document.querySelectorAll('.js-additional-button-property.hidden input, .js-additional-button-property.hidden select:not(.miniselect)');
+    let s = document.getElementById('add-property-select');
+    
+    while (s.firstChild) {
+        s.removeChild(s.firstChild);
+    }
+    
+    s.appendChild(document.createElement('OPTION'));
+    
+    v.forEach((e) => {
+        let propName = e.id.substr(0, e.id.search(/_property$/));
+        let o = document.createElement('OPTION');
+        o.appendChild(document.createTextNode(propName));
+        s.appendChild(o);
+    });
+    
+    if (document.getElementById('raw-button-properties').closest('tr').classList.contains('hidden')) {
+        let raw = document.createElement('OPTION');
+        raw.appendChild(document.createTextNode('Raw data (Edit carefully!)'));
+        s.appendChild(raw);
+    }
 }
 
 
-function setCommandSelectorOption(value) {
-	let s = document.getElementById('command-select');
+function fillCommandSelector() {
+    let s = document.getElementById('command-select');
+    
+    let o = document.createElement('OPTION');
+    s.appendChild(o);
+    
+    let oc = document.createElement('OPTGROUP');
+    oc.label = 'RetroPad';
+    oc.appendChild(fillSelectorFragment(buttonCommandList));
+    s.appendChild(oc);
+    
+    let os = document.createElement('OPTGROUP');
+    os.label = 'System';
+    os.appendChild(fillSelectorFragment(buttonSystemList));
+    s.appendChild(os);
+    
+    let ok = document.createElement('OPTGROUP');
+    ok.label = 'Keyboard';
+    ok.appendChild(fillSelectorFragment(buttonKeyboardList));
+    s.appendChild(ok);
+}
+
+
+function fillEightwaySelector() {
+    const propList = ['up', 'down', 'left', 'right'];
+    
+    let f = fillSelectorFragment(buttonCommandList);
+    
+    for (const prop of propList) {
+        let s = document.getElementById(prop + '-select');
+        s.appendChild(f.cloneNode(true));
+    }
+}
+
+
+function fillSelectorFragment(commands) { 
+    commands = commands.split('\n');
+    let f = document.createDocumentFragment();
+    
+    commands.forEach((e) => {
+        let o = document.createElement('OPTION');
+        o.appendChild(document.createTextNode(e));
+        f.appendChild(o);
+    })
+    
+    return f;
+}
+
+
+function setPropertySelectorOption(prop, value) {
+	let s = document.getElementById(prop + '-select');
 	s.selectedIndex = 0;
 
 	for (let i = 0; i < s.options.length; i++) {
@@ -793,10 +1150,18 @@ function enableEditor(enable) {
 }
 
 
+function enableEditorExtra(enable) {
+    let editor = document.getElementById('editor-extra');
+    let inputs = editor.querySelectorAll('button');
+	inputs.forEach(e => { e.disabled = !enable });
+}
+
+
 function enableEditorSliders(enable) {
 	let editor = document.getElementById('editor');
 	let inputs = editor.querySelectorAll('input,button');
-	inputs.forEach(e => { e.disabled = !enable })
+	inputs.forEach(e => { e.disabled = !enable });
+    enableGizmo(enable);
 }
 
 
@@ -824,6 +1189,10 @@ function fillAdditionalPropsFields(data) {
 		switch (fields.length) {
 			case 1:
 				fields[0].value = val;
+                if (document.getElementById(prop + '-select'))
+                    setPropertySelectorOption(prop, val);
+                
+                fields[0].closest('tr').classList.remove('hidden');
 				break;
 
 			case 0:
@@ -832,11 +1201,13 @@ function fillAdditionalPropsFields(data) {
 
 			default:
 				console.log('More than one ui element found!');
-		}
-
+        }
 	});
 
-	others.value = othData.trim();
+    if (othData)
+        document.getElementById('raw-button-properties').closest('tr').classList.remove('hidden');
+    
+    others.value = othData.trim();
 }
 
 
@@ -845,11 +1216,14 @@ function clearAdditionalPropsFields() {
 
 	v.forEach(e => e.value = '');
 	document.getElementById('raw-button-properties').value = '';
+    
+    let r = document.querySelectorAll('.js-additional-button-property');
+    r.forEach(e => e.classList.add('hidden'));
 }
 
 
 function readAdditionalPropsFields() {
-	let v = document.querySelectorAll('.js-additional-button-property input, .js-additional-button-property select');
+	let v = document.querySelectorAll('.js-additional-button-property input, .js-additional-button-property select:not(.miniselect)');
 	let result = [];
 
 	v.forEach(e => {
@@ -979,6 +1353,8 @@ function calculateScreenSizeToFit(width, height) {
 function resetPad() {
 	showDialog('reset-dialog', false);
 	renderConfig(configStr);
+    
+    resetHistory();
 }
 
 
@@ -1002,34 +1378,181 @@ function toggleNames(event) {
 }
 
 
-function flipXcoord() {
-	let x = conf.flipXcoord()
-	document.getElementById('x-range').value = x;
-	document.getElementById('x-number').value = x;
+function toggleGizmo(event) {
+    let gizmo = document.getElementById('gizmo-container');
+    
+    if (event.target.checked) {
+        if (conf.isGroupSelected()) {
+		    gizmo.classList.remove('hidden');
+        }
+    } else {
+		gizmo.classList.add('hidden');
+    }
+}
+
+
+function enableGizmo(enable) {
+    let showGizmo = document.getElementById('chk-show-gizmo');
+    if (!showGizmo.checked)
+        return;
+    
+	let gizmo = document.getElementById('gizmo-container');
+
+    if (enable) 
+		gizmo.classList.remove('hidden');
+	else
+		gizmo.classList.add('hidden');
+}
+
+
+function updateGizmo(prop, value) {
+    const screenSize = (prop == "x" || prop == "w") ? screen.width : screen.height;
+    const mult = (prop == "w" || prop == "h") ? 2 : 1;
+    
+    let info = document.getElementById(prop + '-info');
+    info.textContent = Number((value * screenSize * mult).toFixed(3)) + 'px';
+    
+    let position = Math.min(Math.max(value * screenSize, 0), screenSize);
+    
+    if (prop == 'x') {
+        let gizmo = document.getElementById('gizmo');
+        let infoBox = document.getElementById('info-box');
+        
+        gizmo.style.left = position + 'px';
+        
+        if (position > screenSize - 110)
+            infoBox.style.left = -100 + 'px';
+        else
+            infoBox.style.left = 30 + 'px';
+    } else if (prop == 'y') {
+        let gizmo = document.getElementById('gizmo');
+        let infoBox = document.getElementById('info-box');
+        
+        gizmo.style.top =  position + 'px';
+        
+        if (position > screenSize - 130)
+            infoBox.style.top = -120 + 'px';
+        else
+            infoBox.style.top = 30 + 'px';
+    } else if (prop == 'w') {
+        let handle = document.getElementById('w-handle');
+        let sizeLine = document.getElementById('size-line');
+        let bBox = document.getElementById('bounding-box');
+        
+        handle.style.left = -15 - position + 'px';
+        sizeLine.style.width = position + 'px';
+        bBox.style.left = -4 - position + 'px';
+        bBox.style.width = position * 2 + 'px';
+    } else if (prop == 'h') {
+        let handle = document.getElementById('h-handle');
+        let sizeLine = document.getElementById('size-line');
+        let bBox = document.getElementById('bounding-box');
+        
+        handle.style.top = -15 - position + 'px';
+        sizeLine.style.height = position + 'px';
+        bBox.style.top = -4 - position + 'px';
+        bBox.style.height = position * 2 + 'px';
+    }
+}
+
+
+function togglePixelSnap(event) {
+    'xywh'.split('').forEach(elem => {
+        const screenSize = (elem == "x" || elem == "w") ? screen.width : screen.height;
+        const mult = (elem == "w" || elem == "h") ? 2 : 1;
+        
+	    let range = document.getElementById(elem + '-range');
+        
+        if (event.target.checked)
+            range.step = 1 / screenSize / mult;
+        else
+            range.step = 0.00001;
+    });
+    
+    let infoBox = document.getElementById('info-box');
+
+	if (event.target.checked)
+		infoBox.classList.remove('hidden');
+	else
+		infoBox.classList.add('hidden');
+} 
+
+
+function flipCoord(axis) {
+    saveState();
+    
+    const screenSize = (axis == "x") ? screen.width : screen.height;
+    
+	let value = conf.flipCoord(axis);
+    
+	document.getElementById(axis + '-range').value = value;
+	document.getElementById(axis + '-number').value = value;
+	document.getElementById(axis + '-pixel').value = value * screenSize;
+    updateGizmo(axis, value);
 	updateCurrentLine();
 	syncSelectedButtons();
 }
 
 
 function normalizeHeight() {
-	let h = conf.normalizeHeight(screen.width, screen.height)
-	document.getElementById('h-range').value = h;
+    saveState();
+    
+	let h = conf.normalizeHeight(screen.width, screen.height);
+	
+    document.getElementById('h-range').value = h;
 	document.getElementById('h-number').value = h;
-	updateCurrentLine();
+	document.getElementById('h-pixel').value = h * screen.height * 2;
+	updateGizmo("h", h);
+    updateCurrentLine();
 	syncSelectedButtons();
 }
 
 
 function normalizeWidth() {
-	let w = conf.normalizeWidth(screen.width, screen.height)
+    saveState();
+    
+	let w = conf.normalizeWidth(screen.width, screen.height);
+    
 	document.getElementById('w-range').value = w;
 	document.getElementById('w-number').value = w;
-	updateCurrentLine();
+	document.getElementById('w-pixel').value = w * screen.width * 2;
+	updateGizmo("w", w);
+    updateCurrentLine();
 	syncSelectedButtons();
 }
 
 
+function alignCoord(axis, mode) {
+    saveState();
+    
+    conf.alignCoord(axis, mode);
+    
+    const screenSize = (axis == "x") ? screen.width : screen.height;
+    
+    let size = conf.getSelectionDimensions();
+    
+    axis.concat('wh').split('').forEach(elem => {
+        document.getElementById(elem + '-range').value = size[elem];
+        document.getElementById(elem + '-number').value = size[elem];
+        document.getElementById(elem + '-pixel').value = size[elem] * screenSize;
+        updateGizmo(elem, size[elem]);
+    });
+    
+    syncSelectedButtons();
+}
+
+
+function distributeCoord(axis) {
+    saveState();
+    
+    conf.distributeCoord(axis);
+    syncSelectedButtons();
+}
+
+
 function fixAspect() {
+    saveState();
+    
 	let iw = document.getElementById('initial-aspect-width').value;
 	let ih = document.getElementById('initial-aspect-height').value;
 
@@ -1075,9 +1598,12 @@ function addButton() {
 	if (d.warn)
 		return;
 
+    saveState();
+    
 	hideButtonEditor();
 	conf.createButton(d.command, d.shape, d.image, d.lines);
-	redrawPad();
+	deselectAll();
+    redrawPad();
 }
 
 
@@ -1085,10 +1611,13 @@ function editButton() {
 	let d = getButtonDataFromDialog();
 	if (d.warn)
 		return;
+    
+    saveState();
 
 	hideButtonEditor();
 	conf.updateCurrentButton(d.command, d.shape, d.image, d.lines);
 	conf.setCurrentLine(-1);
+    deselectAll();
 	redrawPad();
 }
 
@@ -1107,6 +1636,8 @@ function addOverlay() {
 		showDialog('name-empty-dialog', true);
 		return;
 	}
+    
+    saveState();
 
 	if (document.getElementById('chk-duplicate-overlay').checked)
 		conf.duplicateCurrentOverlay(name, props);
@@ -1133,6 +1664,8 @@ function editOverlay() {
 		showDialog('name-empty-dialog', true);
 		return;
 	}
+    
+    saveState();
 
 	conf.editCurrentOverlay(name, processRawProperties(raw));
 
@@ -1144,6 +1677,8 @@ function editOverlay() {
 
 
 function delCurrentButton() {
+    saveState();
+    
 	showDialog('button-delete-dialog', false);
 
 	if (!conf.deleteCurrentButton())
@@ -1153,6 +1688,8 @@ function delCurrentButton() {
 
 
 function delCurrentOverlay() {
+    saveState();
+    
 	showDialog('overlay-delete-dialog', false);
 
 	conf.deleteCurrentOverlay();
@@ -1280,22 +1817,43 @@ function fillImageNameField(event) {
 
 
 function fillCommandField(event) {
+    let index = event.target.selectedIndex;
+    let group = event.target.options[index].parentNode.label;
 	let command = event.target.value;
+    let text = document.getElementById('command-name');
 
-	clearAdditionalPropsFields();
+    if (group != 'Keyboard' && text.value.includes('|')) {
+        let old = text.value.substring(0, text.value.lastIndexOf("|") + 1);
+        text.value = old + command;
+    } else {
+	    clearAdditionalPropsFields();
+    
+	    text.value = command;
+	    let lines = showAdditionalParametersForCommand(command);
+	    if (lines)
+		    fillAdditionalPropsFields(lines.split('\n'));
+        
+        fillAdditionalPropsSelector();
+    }
+}
 
-	document.getElementById('command-name').value = command;
-	let lines = showAdditionalParametersForCommand(command);
-	if (lines) {
-		fillAdditionalPropsFields(lines.split('\n'));
-		toggleAdditionalButtonProperties(true);
-	}
+
+function fillEightwayField(event, prop) {
+	let command = event.target.value;
+    let text = document.getElementById(prop + '_property');
+    
+    if (text.value.includes('|')) {
+        let old = text.value.substring(0, text.value.lastIndexOf("|") + 1);
+        text.value = old + command;
+    } else
+	    text.value = command;
 }
 
 
 function toggleOrientation(event) {
 	screen.isPortrait = event.target.checked;
 	setScreenDimensions();
+    deselectAll();
 	redrawPad();
 }
 
@@ -1304,36 +1862,39 @@ function toggleScreenshot(event) {
 	screen.shotShow = event.target.checked;
 	setScreenDimensions();
 	refreshScreenshot();
+    deselectAll();
 	redrawPad();
 }
 
 
 function toggleOffscreen(event) {
 	let screenDiv = document.getElementById('screenpad');
+	let gizmo = document.getElementById('gizmo-container');
 
 	if (event.target.checked) {
 		screenDiv.classList.add('show-offscreen');
 		screenDiv.classList.remove('hide-offscreen');
+		gizmo.classList.add('show-offscreen');
+		gizmo.classList.remove('hide-offscreen');
 	} else {
 		screenDiv.classList.remove('show-offscreen');
 		screenDiv.classList.add('hide-offscreen');
+		gizmo.classList.remove('show-offscreen');
+		gizmo.classList.add('hide-offscreen');
 	}
 }
 
 
-function toggleAdditionalButtonProperties(show) {
-	let adds = document.getElementsByClassName('js-additional-button-property');
-	let addBtn = document.getElementById('btn-additional-button');
-
-	if (show || adds[0].classList.contains('hidden')) {
-		addBtn.classList.add('expanded');
-		for (let i = 0; i < adds.length; i++)
-			adds[i].classList.remove('hidden');
-	} else {
-		addBtn.classList.remove('expanded');
-		for (let i = 0; i < adds.length; i++)
-			adds[i].classList.add('hidden');
-	}
+function toggleAdditionalButtonProperties(event) {
+    let prop = event.target.value;
+    let propRow;
+    if (prop == 'Raw data (Edit carefully!)')
+        propRow = document.getElementById('raw-button-properties').closest('tr');
+    else
+        propRow = document.querySelectorAll('.js-additional-button-property #' + prop + '_property')[0].closest('tr');
+    
+    propRow.classList.remove('hidden');
+    event.target.remove(event.target.selectedIndex);
 }
 
 
@@ -1421,6 +1982,7 @@ function updateNewOverlayFields() {
 function selectOverlay(event) {
 	conf.setCurrentOverlay(event.target.selectedIndex);
 	conf.setCurrentLine(-1);
+    overlayRMod = conf.getCurrentOverlayParams().find(param => param.startsWith("range_mod"))?.split("=")[1];
 
 	if (event.target.value.search('portrait') != -1)
 		screen.isPortrait = true;
@@ -1447,4 +2009,87 @@ function setColorScheme(index) {
 
 	if (index > 0)
 		screenpad.classList.add('scheme-' + index);
+}
+
+
+function toggleAppTheme() {
+    const html = document.documentElement;
+    
+    if (html.dataset.theme == "dark") {
+        html.dataset.theme = "default";
+    } else {
+        html.dataset.theme = "dark";
+    }
+}
+
+
+function saveState() {
+    const currentConfig = conf.getConfigString();
+    
+    if (undoStack.length > 0 && undoStack[undoStack.length - 1].config === currentConfig)
+        return;
+    
+    undoStack.push({overlay:conf.getCurrentOverlay(), config:currentConfig});
+
+    if (undoStack.length > MAX_HISTORY)
+        undoStack.shift();
+
+    redoStack.length = 0;
+    
+    updateHistoryButtons();
+}
+
+
+function loadState(state) {
+    renderConfig(state.config);
+    
+    let select = document.getElementById('overlay-selector');
+    select.selectedIndex = state.overlay;
+    select.dispatchEvent(new Event('change'));
+
+    updateHistoryButtons();
+    conf.resetGroupSelection();
+}
+
+
+function undo() {
+    if (undoStack.length == 0)
+        return;
+
+    redoStack.push({overlay:conf.getCurrentOverlay(), config:conf.getConfigString()});
+
+    const previous = undoStack.pop();
+
+    loadState(previous);
+}
+
+
+function redo() {
+    if (redoStack.length == 0)
+        return;
+
+    undoStack.push({overlay:conf.getCurrentOverlay(), config:conf.getConfigString()});
+
+    const next = redoStack.pop();
+
+    loadState(next);
+}
+
+
+function updateHistoryButtons() {
+    let undoBtn = document.getElementById('undo-button')
+    let redoBtn = document.getElementById('redo-button')
+    undoBtn.innerHTML = 'Undo (' + undoStack.length + ')';
+    redoBtn.innerHTML = 'Redo (' + redoStack.length + ')';
+    undoBtn.disabled = (undoStack.length == 0);
+    redoBtn.disabled = (redoStack.length == 0);
+}
+
+
+function resetHistory() {
+    undoStack.length = 0;
+    redoStack.length = 0;
+    
+    updateHistoryButtons();
+    conf.resetGroupSelection();
 }

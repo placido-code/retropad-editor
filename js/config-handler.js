@@ -117,7 +117,16 @@ function ConfigHandler() {
 					h: _getParamSectionValue(_strings[i], 'h'),
 					s: _getParamSectionValue(_strings[i], 'shape'),
 					img: _getParamValue(parameter + '_overlay'),
+                    rm: _getParamValue(parameter + '_range_mod'),
 					pct: _getParamValue(parameter + '_saturate_pct'),
+					rx: _getParamValue(parameter + '_reach_x'),
+					ry: _getParamValue(parameter + '_reach_y'),
+					ru: _getParamValue(parameter + '_reach_up'),
+					rd: _getParamValue(parameter + '_reach_down'),
+					rl: _getParamValue(parameter + '_reach_left'),
+					rr: _getParamValue(parameter + '_reach_right'),
+					e: _getParamValue(parameter + '_exclusive'),
+					rme: _getParamValue(parameter + '_range_mod_exclusive'),
 					i: i
 				};
 
@@ -450,20 +459,20 @@ function ConfigHandler() {
 	}
 
 
-	this.flipXcoord = function () {
-		let x;
+	this.flipCoord = function (axis) {
+		let value;
 		if (selectedButtonLineIndexes.length > 0) {
 			let c = this.getSelectionDimensions();
-			x = (1 - c.x).toFixed(5);
-			this.setSelectionSectionValue('x', x);
+			value = (1 - c[axis]).toFixed(5);
+			this.setSelectionSectionValue(axis, value);
 		} else {
-			x = (1 - _getParamSectionValue(_strings[_currentLine], 'x')).toFixed(5);
-			this.setCurrentLineSectionValue('x', x);
+			value = (1 - _getParamSectionValue(_strings[_currentLine], axis)).toFixed(5);
+			this.setCurrentLineSectionValue(axis, value);
 		}
-		return x;
+		return value;
 	}
-
-
+    
+    
 	this.normalizeWidth = function (width, height) {
 		let w;
 		if (selectedButtonLineIndexes.length > 0) {
@@ -490,6 +499,71 @@ function ConfigHandler() {
 		}
 		return h;
 	}
+    
+    
+    this.alignCoord = function (axis, mode) {
+        let center = this.getSelectionDimensions();
+        if (!center)
+            return;
+        
+        for (let i = 0; i < selectedButtonLineIndexes.length; i++) {
+            let confValue;
+            let index = selectedButtonLineIndexes[i];
+            let dimension = (axis == 'x') ? 'w' : 'h';
+            let size = Number(_getParamSectionValue(_strings[index], dimension));
+            
+            switch (mode) {
+                case 'start':
+                case 'left':
+                case 'top':
+                    confValue = center[axis] - center[dimension] + size;
+                    break;
+    
+                case 'center':
+                    confValue = center[axis];
+                    break;
+    
+                case 'end':
+                case 'right':
+                case 'bottom':
+                    confValue = center[axis] + center[dimension] - size;
+                    break;
+    
+                default:
+                    return;
+            }
+    
+            _strings[index] = _editParamSection(_strings[index], axis, confValue.toFixed(10));
+        }
+    };
+    
+    
+    this.distributeCoord = function (axis) {
+        let center = this.getSelectionDimensions();
+		if (!center)
+			return;
+        
+        let dimension = (axis == 'x') ? 'w' : 'h';
+        let startEdge = center[axis] - center[dimension];
+        let endEdge = center[axis] + center[dimension];
+        
+        let sortedIndexes = selectedButtonLineIndexes.toSorted((a, b) => Number(_getParamSectionValue(_strings[a], axis)) - Number(_getParamSectionValue(_strings[b], axis)));
+        let totalSize = sortedIndexes.reduce((a, i) => a + Number(_getParamSectionValue(_strings[i], dimension)), 0);
+        let gap = ((center[dimension] - totalSize) * 2) / (sortedIndexes.length - 1);
+        
+        let currentPos = startEdge;
+        
+        for (let i = 0; i < sortedIndexes.length; i++) {
+            let confValue;
+			let index = sortedIndexes[i];
+            let size = Number(_getParamSectionValue(_strings[index], dimension));
+            
+            confValue = Math.min(Math.max(currentPos + size, startEdge + size), endEdge - size);
+			_strings[index] = _editParamSection(_strings[index], axis, confValue.toFixed(10));
+            
+            currentPos = confValue + size + gap;
+        }
+    }
 
 
 	this.getCurrentButtonParams = function () {
@@ -604,13 +678,34 @@ function ConfigHandler() {
 				let y = _getParamSectionValue(_strings[i], 'y');
 
 				if (x >= left && x <= right && y >= top && y <= bottom)
-					indexes.push(i)
+					indexes.push(i);
 			}
 		}
 
-		selectedButtonLineIndexes = indexes;
 		return indexes;
 	}
+    
+    
+    this.setSelectedIndexes = function (indexes) {
+        selectedButtonLineIndexes = indexes;
+    }
+    
+        
+    this.addToSelectedIndexes = function (indexes) {
+        for (let i = 0; i < indexes.length; i++) {
+            if (selectedButtonLineIndexes.indexOf(indexes[i]) === -1)
+                selectedButtonLineIndexes.push(indexes[i]);
+        }
+    }
+    
+    
+    this.subtractFromSelectedIndexes = function (indexes) {
+        for (let i = 0; i < indexes.length; i++) {
+            let iOf = selectedButtonLineIndexes.indexOf(indexes[i]);
+            if (iOf !== -1)
+                selectedButtonLineIndexes.splice(iOf, 1);
+        }
+    }
 
 
 	this.isGroupSelected = function () {

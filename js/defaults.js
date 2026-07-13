@@ -350,10 +350,28 @@
 		l_x_plus
 		l_y_minus
 		l_y_plus
+        r_x_plus
+        r_x_minus
+        r_y_plus
+        r_y_minus
 		abxy_area
 		dpad_area
 		#
-		menu_toggle
+		gun_trigger
+        gun_offscreen_shot
+        gun_aux_a
+        gun_aux_b
+        gun_aux_c
+        gun_start
+        gun_select
+        gun_dpad_up
+        gun_dpad_down
+        gun_dpad_left
+        gun_dpad_right
+        turbo
+        hold`.replace(indent, '\n').replace('#', '');
+    
+    window.buttonSystemList = `menu_toggle
 		overlay_next
 		load_state
 		save_state
@@ -361,14 +379,218 @@
 		state_slot_decrease
 		shader_next
 		shader_prev
+        shader_toggle
+        shader_hold
 		rewind
 		hold_fast_forward
 		toggle_fast_forward
 		hold_slowmotion
 		toggle_slowmotion
 		audio_mute
+        volume_up
+        volume_down
 		pause_toggle
+        frame_advance
 		screenshot
 		reset
-		exit_emulator`.replace(indent, '\n').replace('#', '');
+        close_content
+		exit_emulator
+        #
+        enable_hotkey
+        play_replay
+        record_replay
+        halt_replay
+        save_replay_checkpoint
+        prev_replay_checkpoint
+        next_replay_checkpoint
+        replay_slot_increase
+        replay_slot_decrease
+        disk_eject_toggle
+        disk_next
+        disk_prev
+        cheat_toggle
+        cheat_index_plus
+        cheat_index_minus
+        recording_toggle
+        streaming_toggle
+        turbo_fire_toggle
+        grab_mouse_toggle
+        game_focus_toggle
+        toggle_fullscreen
+        desktop_menu_toggle
+        toggle_vrr_runloop
+        runahead_toggle
+        preempt_toggle
+        video_filter_toggle
+        fps_toggle
+        toggle_statistics
+        ai_service
+        netplay_ping_toggle
+        netplay_host_toggle
+        netplay_game_watch
+        netplay_player_chat
+        netplay_fade_chat_toggle
+        osk_toggle`.replace(indent, '\n').replace('#', '');
+    
+    window.buttonKeyboardList = `retrok_up
+        retrok_down
+        retrok_left
+        retrok_right
+        retrok_return
+        retrok_tab
+        retrok_space
+        retrok_escape
+        retrok_capslock
+        retrok_backspace
+        retrok_insert
+        retrok_delete
+        retrok_end
+        retrok_home
+        retrok_pageup
+        retrok_pagedown
+        retrok_rshift
+        retrok_lshift
+        retrok_lctrl
+        retrok_rctrl
+        retrok_lalt
+        retrok_ralt
+        retrok_a
+        retrok_b
+        retrok_c
+        retrok_d
+        retrok_e
+        retrok_f
+        retrok_g
+        retrok_h
+        retrok_i
+        retrok_j
+        retrok_k
+        retrok_l
+        retrok_m
+        retrok_n
+        retrok_o
+        retrok_p
+        retrok_q
+        retrok_r
+        retrok_s
+        retrok_t
+        retrok_u
+        retrok_v
+        retrok_w
+        retrok_x
+        retrok_y
+        retrok_z
+        retrok_0
+        retrok_1
+        retrok_2
+        retrok_3
+        retrok_4
+        retrok_5
+        retrok_6
+        retrok_7
+        retrok_8
+        retrok_9
+        retrok_backquote
+        retrok_minus
+        retrok_equals
+        retrok_leftbracket
+        retrok_rightbracket
+        retrok_backslash
+        retrok_semicolon
+        retrok_quote
+        retrok_comma
+        retrok_period
+        retrok_slash
+        retrok_caret
+        retrok_underscore
+        retrok_exclaim
+        retrok_quotedbl
+        retrok_hash
+        retrok_dollar
+        retrok_ampersand
+        retrok_leftparen
+        retrok_rightparen
+        retrok_asterisk
+        retrok_plus
+        retrok_colon
+        retrok_less
+        retrok_greater
+        retrok_question
+        retrok_at
+        retrok_f1
+        retrok_f2
+        retrok_f3
+        retrok_f4
+        retrok_f5
+        retrok_f6
+        retrok_f7
+        retrok_f8
+        retrok_f9
+        retrok_f10
+        retrok_f11
+        retrok_f12
+        retrok_print
+        retrok_scrollock
+        retrok_pause
+        retrok_numlock
+        retrok_kp0
+        retrok_kp1
+        retrok_kp2
+        retrok_kp3
+        retrok_kp4
+        retrok_kp5
+        retrok_kp6
+        retrok_kp7
+        retrok_kp8
+        retrok_kp9
+        retrok_kp_enter
+        retrok_kp_period
+        retrok_kp_plus
+        retrok_kp_minus
+        retrok_kp_multiply
+        retrok_kp_divide
+        retrok_kp_equals
+        retrok_f13
+        retrok_f14
+        retrok_f15
+        retrok_rmeta
+        retrok_lmeta
+        retrok_lsuper
+        retrok_rsuper
+        retrok_mode
+        retrok_compose
+        retrok_help
+        retrok_sysreq
+        retrok_break
+        retrok_menu
+        retrok_power
+        retrok_euro
+        retrok_undo
+        retrok_clear
+        retrok_oem_102
+        retrok_browser_back
+        retrok_browser_forward
+        retrok_browser_refresh
+        retrok_browser_stop
+        retrok_browser_search
+        retrok_browser_favorites
+        retrok_browser_home
+        retrok_volume_mute
+        retrok_volume_down
+        retrok_volume_up
+        retrok_media_next
+        retrok_media_prev
+        retrok_media_stop
+        retrok_media_play_pause
+        retrok_launch_mail
+        retrok_launch_media
+        retrok_launch_app1
+        retrok_launch_app2
+        #
+        retrokmod_shift
+        retrokmod_ctrl
+        retrokmod_alt
+        retrokmod_meta
+        retrokmod_numlock
+        retrokmod_capslock`.replace(indent, '\n').replace('#', '');
 }
