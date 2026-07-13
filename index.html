@@ -9,6 +9,7 @@
 	<meta name='description' content='Edit onscreen gamepads for RetroArch'>
 
 	<link rel='stylesheet' href='css/reset.css'>
+	<link rel='stylesheet' href='css/colors.css'>
 	<link rel='stylesheet' href='css/elements.css'>
 	<link rel='stylesheet' href='css/style.css'>
 
@@ -35,6 +36,7 @@
 					<div class='join-buttons-div'>
 						<button onclick='showScreenSizeDialog()'>Set screen size</button>
 						<button title='Color theme' id='show-colors-button' onclick='showColorsDialog()'>C</button>
+                        <button title='App Theme' id='app-theme-button' onclick='toggleAppTheme()'>T</button>
 					</div>
 					<br>
 					<div class='toolbar-group__checkboxes'>
@@ -57,10 +59,35 @@
 							<input type='checkbox' id='chk-show-offscreen' autocomplete='off'>
 							<label for='chk-show-offscreen'>Show offscreen</label>
 						</div>
+                        
+                        <div class='checkbox-wrapper'>
+							<input type='checkbox' id='chk-show-gizmo' autocomplete='off'>
+							<label for='chk-show-gizmo'>Show gizmo</label>
+						</div>
+                        
+                        <div class='checkbox-wrapper'>
+							<input type='checkbox' id='chk-pixel-snap' autocomplete='off'>
+							<label for='chk-pixel-snap'>Snap to pixels</label>
+						</div>
 					</div>
 				</div>
 
 				<div class='toolbar-group'>
+                    <button id='undo-button' onclick='undo()' disabled>Undo (0)</button>
+                    <button id='redo-button' onclick='redo()' disabled>Redo (0)</button>
+                    <br>
+                    <span class='group-header' style='padding-bottom: 4px;'>SELECT MODE</span>
+                    <div class='select-mode-wrapper'>
+                        <input type='radio' id='set-mode' name='select-mode' checked>
+                        <label for='set-mode'>Set</label>
+                        <input type='radio' id='add-mode' name='select-mode'>
+                        <label for='add-mode'>Add</label>
+                        <input type='radio' id='subtract-mode' name='select-mode'>
+                        <label for='subtract-mode'>Subtract</label>
+                    </div>
+                </div>
+                
+                <div class='toolbar-group'>
 					<span class='group-header'>OVERLAY</span>
 					<select id='overlay-selector' class='notranslate' translate='no'></select>
 					<div class='toolbar-group__buttons'>
@@ -88,6 +115,36 @@
 						<div id='screenpad' class='hide-offscreen'>
 							<div id='game-screenshot'></div>
 						</div>
+                        <div id='gizmo-container' class='hide-offscreen hidden'>
+                            <div id=gizmo>
+                                <div id='bounding-box'></div>
+                                <div id='center-handle' class='handle'></div>
+                                <div id='position-line'></div>
+                                <div id='size-line'></div>
+                                <div id='x-handle' class='handle'></div>
+                                <div id='y-handle' class='handle'></div>
+                                <div id='w-handle' class='handle'></div>
+                                <div id='h-handle' class='handle'></div>
+                                <table id='info-box' class='hidden'>
+                                    <tr>
+                                        <td>X</td>
+                                        <td id='x-info'>0px</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Y</td>
+                                        <td id='y-info'>0px</td>
+                                    </tr>
+                                    <tr>
+                                        <td>W</td>
+                                        <td id='w-info'>0px</td>
+                                    </tr>
+                                    <tr>
+                                        <td>H</td>
+                                        <td id='h-info'>0px</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
 					</div>
 				</div>
 
@@ -96,19 +153,23 @@
 						<span>X</span>
 						<input type='range' max=1 step=0.00001 id='x-range'>
 						<input type='number' step=any id='x-number'>
-						<button onclick='flipXcoord()'>Flip</button>
+						<input type='number' step=1 id='x-pixel'>
+						<button onclick='flipCoord("x")'>Flip</button>
 					</div>
 
 					<div>
 						<span>Y</span>
 						<input type='range' max=1 step=0.00001 id='y-range'>
 						<input type='number' step=any id='y-number'>
+						<input type='number' step=1 id='y-pixel'>
+                        <button onclick='flipCoord("y")'>Flip</button>
 					</div>
 
 					<div>
 						<span>W</span>
 						<input type='range' max=1 step=0.00001 id='w-range'>
 						<input type='number' step=any id='w-number'>
+						<input type='number' step=1 id='w-pixel'>
 						<button id='norm-width' onclick='normalizeWidth()'>Quad</button>
 					</div>
 
@@ -116,7 +177,26 @@
 						<span>H</span>
 						<input type='range' max=1 step=0.00001 id='h-range'>
 						<input type='number' step=any id='h-number'>
+						<input type='number' step=1 id='h-pixel'>
 						<button id='norm-height' onclick='normalizeHeight()'>Quad</button>
+					</div>
+				</div>
+                
+                <div id='editor-extra'>
+					<div>
+						<span>X</span>
+						<button onclick='alignCoord("x", "left")'>Allign left</button>
+						<button onclick='alignCoord("x", "center")'>Allign center</button>
+						<button onclick='alignCoord("x", "right")'>Allign right</button>
+						<button onclick='distributeCoord("x")'>Distribute</button>
+					</div>
+
+					<div>
+						<span>Y</span>
+                        <button onclick='alignCoord("y", "top")'>Allign top</button>
+                        <button onclick='alignCoord("y", "center")'>Allign center</button>
+                        <button onclick='alignCoord("y", "bottom")'>Allign bottom</button>
+                        <button onclick='distributeCoord("y")'>Distribute</button>
 					</div>
 				</div>
 
@@ -141,7 +221,7 @@
 				</div>
 				<div class='modal-dialog__content-box'>
 					<table id='button-properties-table'>
-						<tr>
+                        <tr>
 							<td>
 								<label for='command-name'>Command</label>
 							</td>
@@ -175,13 +255,16 @@
 								</select>
 							</td>
 						</tr>
-
-						<tr>
+                        
+                        <tr>
 							<td>
-								<button class='empty expander button--normal-size' id='btn-additional-button'
-									onclick='toggleAdditionalButtonProperties()'>Additional</button>
+								<span class='group-header'>Aditional</span>
+                                <button class='empty button--normal-size'
+                                    onclick='showDialog("additional-properties-hint-dialog", true)'>?</button>
 							</td>
-							<td></td>
+
+							<td>
+							</td>
 						</tr>
 
 						<tr class='js-additional-button-property hidden'>
@@ -196,16 +279,6 @@
 
 						<tr class='js-additional-button-property hidden'>
 							<td>
-								<label for='range_mod_property' class='notranslate' translate='no'>range_mod</label>
-							</td>
-
-							<td>
-								<input type='number' step=0.01 id='range_mod_property'>
-							</td>
-						</tr>
-
-						<tr class='js-additional-button-property hidden'>
-							<td>
 								<label for='alpha_mod_property' class='notranslate' translate='no'>alpha_mod</label>
 							</td>
 
@@ -214,7 +287,17 @@
 							</td>
 						</tr>
 
-						<tr class='js-additional-button-property hidden'>
+                        <tr class='js-additional-button-property hidden'>
+							<td>
+								<label for='range_mod_property' class='notranslate' translate='no'>range_mod</label>
+							</td>
+
+							<td>
+								<input type='number' step=0.01 id='range_mod_property'>
+							</td>
+						</tr>
+                        
+                        <tr class='js-additional-button-property hidden'>
 							<td>
 								<label for='saturate_pct_property' class='notranslate'
 									translate='no'>saturate_pct</label>
@@ -238,6 +321,138 @@
 								</select>
 							</td>
 						</tr>
+                        
+                        <tr class='js-additional-button-property hidden'>
+							<td>
+								<label for='reach_x_property' class='notranslate' translate='no'>reach_x</label>
+							</td>
+
+							<td>
+								<input type='number' step=0.01 id='reach_x_property'>
+							</td>
+						</tr>
+                        
+                        <tr class='js-additional-button-property hidden'>
+							<td>
+								<label for='reach_y_property' class='notranslate' translate='no'>reach_y</label>
+							</td>
+
+							<td>
+								<input type='number' step=0.01 id='reach_y_property'>
+							</td>
+						</tr>
+                        
+                        <tr class='js-additional-button-property hidden'>
+							<td>
+								<label for='reach_up_property' class='notranslate' translate='no'>reach_up</label>
+							</td>
+
+							<td>
+								<input type='number' step=0.01 id='reach_up_property'>
+							</td>
+						</tr>
+                        
+                        <tr class='js-additional-button-property hidden'>
+							<td>
+								<label for='reach_down_property' class='notranslate' translate='no'>reach_down</label>
+							</td>
+
+							<td>
+								<input type='number' step=0.01 id='reach_down_property'>
+							</td>
+						</tr>
+                        
+                        <tr class='js-additional-button-property hidden'>
+							<td>
+								<label for='reach_left_property' class='notranslate' translate='no'>reach_left</label>
+							</td>
+
+							<td>
+								<input type='number' step=0.01 id='reach_left_property'>
+							</td>
+						</tr>
+                        
+                        <tr class='js-additional-button-property hidden'>
+							<td>
+								<label for='reach_right_property' class='notranslate' translate='no'>reach_right</label>
+							</td>
+
+							<td>
+								<input type='number' step=0.01 id='reach_right_property'>
+                            </td>
+						</tr>
+                        
+                        <tr class='js-additional-button-property hidden'>
+							<td>
+								<label for='exclusive_property' class='notranslate' translate='no'>exclusive</label>
+							</td>
+
+							<td>
+								<select id='exclusive_property' class='notranslate' translate='no'>
+									<option></option>
+									<option>false</option>
+									<option>true</option>
+								</select>
+							</td>
+						</tr>
+                        
+                        <tr class='js-additional-button-property hidden'>
+							<td>
+								<label for='range_mod_exclusive_property' class='notranslate' translate='no'>range_mod_exclusive</label>
+							</td>
+
+							<td>
+								<select id='range_mod_exclusive_property' class='notranslate' translate='no'>
+									<option></option>
+									<option>false</option>
+									<option>true</option>
+								</select>
+							</td>
+						</tr>
+                        
+                        <tr class='js-additional-button-property hidden'>
+							<td>
+								<label for='up_property' class='notranslate' translate='no'>up</label>
+							</td>
+
+							<td>
+								<input type='text' id='up_property'>
+								<select class='miniselect notranslate' translate='no' id='up-select'></select>
+							</td>
+						</tr>
+                        
+                        <tr class='js-additional-button-property hidden'>
+							<td>
+								<label for='down_property' class='notranslate' translate='no'>down</label>
+							</td>
+
+							<td>
+								<input type='text' id='down_property'>
+								<select class='miniselect notranslate' translate='no' id='down-select'></select>
+							</td>
+						</tr>
+                        
+                        <tr class='js-additional-button-property hidden'>
+							<td>
+								<label for='left_property' class='notranslate' translate='no'>left</label>
+							</td>
+
+							<td>
+								<input type='text' id='left_property'>
+								<select class='miniselect notranslate' translate='no' id='left-select'></select>
+							</td>
+						</tr>
+                        
+                        <tr class='js-additional-button-property hidden'>
+							<td>
+								<label for='right_property' class='notranslate' translate='no'>right</label>
+							</td>
+
+							<td>
+								<input type='text' id='right_property'>
+								<select class='miniselect notranslate' translate='no' id='right-select'></select>
+							</td>
+						</tr>
 
 						<tr class='js-additional-button-property hidden'>
 							<td class='vertical-align-top'>
@@ -249,6 +464,17 @@
 							<td>
 								<textarea spellcheck='false' id='raw-button-properties'></textarea>
 							</td>
+						</tr>
+                        
+                        <tr><td><br class='wide'></td><td></td></td></tr>
+                        
+                        <tr>
+							<td>
+								<label for='add-property-select'>Add property:</label>
+							</td>
+							<td>
+                                <select id='add-property-select' class='notranslate' translate='no'></select>
+                            </td>
 						</tr>
 					</table>
 				</div>
@@ -271,7 +497,7 @@
 				</div>
 				<div class='modal-dialog__content-box'>
 					<div class='dialog-content-box__section'>
-						<label>Overlay name</label>
+						<label for='overlay-name'>Overlay name</label>
 						<input type='text' id='overlay-name' class='js-dialog__focus' autocomplete='off'>
 						<br class='wide'>
 						<input type='checkbox' autocomplete='off' id='chk-edit-overlay'
@@ -605,7 +831,184 @@
 				</div>
 			</div>
 		</div>
+        
+        <div id='additional-properties-hint-dialog' class='dialog-container hidden'>
+			<div class='modal-dialog'>
+				<div class='modal-dialog__header-box'>
+					<span>Additional porpeties hint</span>
+					<button class='close-button danger' onclick='showDialog("additional-properties-hint-dialog", false)'></button>
+				</div>
+				<div class='modal-dialog__content-box'>
+                    <button class='accordion-header'>
+                        The | character
+                    </button>
+                    <div class='accordion-content'>
+                        <p style='padding-bottom:8px'>
+						    The | character allows multiple commands to be chained together.
+                        </p>
+                        <p>
+                            E.g. this will trigger both left and up at same time.
+					    </p>
+                        <pre><code>left|up</code></pre>
+                        <p>
+						    Keyboard keys are an exception, a button can only trigger one key.
+					    </p>
+                    </div>
+                    
+                    <button class='accordion-header'>
+                        Next_target
+                    </button>
+                    <div class='accordion-content'>
+                        <p>
+						    Allows an overlay_next button to jump directly to a specific overlay by name.
+					    </p>
+                    </div>
+                    
+                    <button class='accordion-header'>
+                        Alpha_mod
+                    </button>
+                    <div class='accordion-content'>
+                        <p>
+						    The alpha value of the button will be multiplied by a factor.
+					    </p>
+					    <pre><code>alpha_mod = 2.0 # Alpha is multiplied 2x when pressed.</code></pre>
+                        <p>
+						    It's possible to set a default across all buttons for an overlay using the alpha_mod overlay property.
+					    </p>
+                    </div>
+                    
+                    <button class='accordion-header'>
+                        Range_mod
+                    </button>
+                    <div class='accordion-content'>
+                        <p>
+						    Makes the hitboxes larger while the button is pressed.
+					    </p>
+					    <pre><code>range_mod = 1.5 # The hitbox will be 50% larger when pressed.</code></pre>
+                        <p>
+						    It's possible to set a default across all buttons for an overlay using the range_mod overlay property.
+					    </p>
+                    </div>
+                    
+                    <button class='accordion-header'>
+                        Saturate_pct
+                    </button>
+                    <div class='accordion-content'>
+                        <p style='padding-bottom:8px'>
+                            Used to configure where saturation kicks in for a analog_left or analog_right.
+					    </p>
+                        <p style='padding-bottom:8px'>
+						    analog_left and analog_right translate to analog sticks. These buttons must have hitbox type radial.
+					    </p>
+                        <p>
+						    E.g. a value of 0.75 means the 75% inner part contains the entire analog range. Outside the 75% it will be fully saturated.
+					    </p>
+                    </div>
+                    
+                    <button class='accordion-header'>
+                        Movable
+                    </button>
+                    <div class='accordion-content'>
+					    <p>
+						    Enables an overlay to follow the finger movement within its bounding area.
+					    </p>
+                    </div>
 
+                    <button class='accordion-header'>
+                        Reach_x/y and reach_up/down/left/right
+                    </button>
+                    <div class='accordion-content'>
+                        <p style='padding-bottom:8px'>
+						    Adjusts a button's hitbox without affecting its image, input center, or analog saturation.
+					    </p>
+                        <p style='padding-bottom:8px'>
+						    Use reach_x/y to multiply hitbox width/height symmetrically.
+					    </p>
+                        <p style='padding-bottom:8px'>
+						    Use reach_up/down/left/right to multiply hitbox range in that direction.
+					    </p>
+					    <p>
+						    E.g. this creates a d-pad and extends its hitbox vertically by 60%, and left by 40%.
+					    </p>
+					    <pre><code># dpad_area
+reach_y = 1.6 # Multiply hitbox height
+reach_left = 1.4 # Multiply hitbox width on left side</code></pre>
+                        <div class='accordion-hint-text-container'>
+						    <span>Default hitbox</span>
+                            <span>Extended hitbox</span>
+					    </div>
+                        <img id='reach-hint-image' src='hitbox-reach-hint.svg'>
+					    <p>
+                            Setting reach_x or reach_y to 0 removes the hitbox. The button then can't be pressed, but it will still light up if another button creates the same input. This is useful for animating a dpad_area or abxy_area.
+					    </p>
+                    </div>
+                    
+                    <button class='accordion-header'>
+                        Exclusive and range_mod_exclusive
+                    </button>
+                    <div class='accordion-content'>
+                        <p style='padding-bottom:8px'>
+						    Used to avoid unwanted button overlap.
+					    </p>
+                        <p style='padding-bottom:8px'>
+						    An exclusive button blocks other buttons pressed by the same finger.
+					    </p>
+                        <p style='padding-bottom:8px'>
+						    A range_mod_exclusive button blocks with higher priority, but only when range_mod is in effect, i.e. one poll after it is pressed.
+					    </p>
+					    <p>
+						    E.g. this overlaps an analog stick and a d-pad. The analog is exclusive, so initially it owns the overlapped hitbox area. Both buttons are range_mod_exclusive, so the one controlled first owns its range_mod extended hitbox area.
+					    </p>
+					    <pre><code># dpad_area
+reach_x = 2.08
+reach_up = 1.62
+reach_down = 1.96
+range_mod = 1.2
+range_mod_exclusive = true # Give dpad_area priority if controlled first
+
+# analog_left
+exclusive = true # Give analog_left priority on first touch
+range_mod = 2.75
+range_mod_exclusive = true # Give analog_left priority if controlled first</code></pre>
+                        <div class='accordion-hint-text-container'>
+                            <span>range_mod_exclusive analog</span>
+					    </div>
+                        <img id='exclusive-hint-image' src='exclusive-hitbox-hint.svg'>
+                        <div class='accordion-hint-text-container'>
+						    <span>range_mod_exclusive dpad</span>
+					    </div>
+                    </div>
+                    
+                    <button class='accordion-header'>
+                        Up, down, left and right
+                    </button>
+                    <div class='accordion-content'>
+                        <p style='padding-bottom:8px'>
+						    Used to redefine a dpad_area or abxy_area inputs.
+					    </p>
+                        <p style='padding-bottom:8px'>
+						    dpad_area and abxy_area are 8-way areas whose input events are based on the direction pressed, i.e. angle from hitbox center. An 8-way area can be used as-is or redefined.
+					    </p>
+					    <p>
+						    E.g. this creates a d-pad consisting of analog directions, and a face button diamond consisting of A, B, R, L.
+					    </p>
+					    <pre><code># dpad_area
+up = r_y_minus
+down = r_y_plus
+left = r_x_minus
+right = r_x_plus
+
+# abxy_area
+up = r
+left = l</code></pre>
+                    </div>
+				</div>
+				<div class='modal-dialog__footer-box'>
+					<button class='js-dialog__focus' onclick='showDialog("additional-properties-hint-dialog", false)'>Close</button>
+				</div>
+			</div>
+		</div>
+        
 	</div>
 </body>
 
