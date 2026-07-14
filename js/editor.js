@@ -713,10 +713,10 @@ function createRect(target, name, x, y, w, h, s, rm, pct, rx, ry, ru, rd, rl, rr
         
         let range;
         
-        if (rMod) {
+        if (rMod && rMod > 1) {
 		    // visualize range_mod property
 		    range = document.createElement('DIV');
-		    let perc = Math.round(((rMod >= 1 ? rMod : 1) - 1) * 50);
+		    let perc = Math.round((rMod - 1) * 50);
             
             range.classList.add('hitbox');
             if (rme === "true")
