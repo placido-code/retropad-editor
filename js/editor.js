@@ -727,10 +727,10 @@ function createRect(target, name, x, y, w, h, s, rm, pct, rx, ry, ru, rd, rl, rr
             else
                 range.style.boxShadow = '0 0 100px inset rgba(200,200,200,0.3)';
             
-            range.style.top = -(percUp + perc) + '%';
-		    range.style.bottom = -(percDown + perc) + '%';
-		    range.style.left = -(percLeft + perc) + '%';
-		    range.style.right = -(percRight + perc) + '%';
+            range.style.top = -perc + '%';
+		    range.style.bottom = -perc + '%';
+		    range.style.left = -perc + '%';
+		    range.style.right = -perc + '%';
 	    }
         
         if (percUp != 0 || percDown != 0 || percLeft != 0 || percRight != 0) {
