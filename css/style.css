@@ -974,6 +974,6 @@ input[type=number] {
 }
 
 .show-borders .rect.hitbox-none:after {
-    background-color: rgba(200, 0, 0, 0.1);
+    background-color: rgba(100, 100, 100, 0.1);
     border-style: dotted;
 }
