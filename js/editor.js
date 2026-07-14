@@ -711,9 +711,11 @@ function createRect(target, name, x, y, w, h, s, rm, pct, rx, ry, ru, rd, rl, rr
         
         let rMod = rm ? rm : overlayRMod;
         
+        let range;
+        
         if (rMod) {
 		    // visualize range_mod property
-		    let range = document.createElement('DIV');
+		    range = document.createElement('DIV');
 		    let perc = Math.round(((rMod >= 1 ? rMod : 1) - 1) * 50);
             
             range.classList.add('hitbox');
@@ -729,7 +731,6 @@ function createRect(target, name, x, y, w, h, s, rm, pct, rx, ry, ru, rd, rl, rr
 		    range.style.bottom = -(percDown + perc) + '%';
 		    range.style.left = -(percLeft + perc) + '%';
 		    range.style.right = -(percRight + perc) + '%';
-            rect.appendChild(range);
 	    }
         
         if (percUp != 0 || percDown != 0 || percLeft != 0 || percRight != 0) {
@@ -747,8 +748,16 @@ function createRect(target, name, x, y, w, h, s, rm, pct, rx, ry, ru, rd, rl, rr
 		    reach.style.left = -percLeft + '%';
 		    reach.style.right = -percRight + '%';
             rect.appendChild(reach);
-	    } else if (e === "true")
-            rect.classList.add('exclusive');
+            
+            if (range)
+                reach.appendChild(range);
+	    } else {
+            if (e === "true")
+                rect.classList.add('exclusive');
+            
+            if (range)
+                rect.appendChild(range);
+        }
     }
     
 	if (pct) {
